@@ -1,19 +1,34 @@
 #!/usr/bin/env bash
-
+ 
 # Unikatni hostname ubuntu (Lepší než hostname školní stanice)
 UNIQUE_HOSTNAME="ubuntu-$(uuidgen)"
 SHORT_HOSTNAME=$(echo $UNIQUE_HOSTNAME | cut -d'-' -f1,2)
-
-# # Konfigurace zabbix_agent2.conf
+ 
+# Záloha původního configu
 sudo cp -v /etc/zabbix/zabbix_agent2.conf /etc/zabbix/zabbix_agent2.conf-orig
-sudo sed -i "s/Hostname=Zabbix server/Hostname=$SHORT_HOSTNAME/g" /etc/zabbix/zabbix_agent2.conf
-sudo sed -i 's/Server=127.0.0.1/Server=enceladus.pfsense.cz/g' /etc/zabbix/zabbix_agent2.conf
-sudo sed -i 's/ServerActive=127.0.0.1/ServerActive=enceladus.pfsense.cz/g' /etc/zabbix/zabbix_agent2.conf
-sudo sed -i 's/# Timeout=3/Timeout=30/g' /etc/zabbix/zabbix_agent2.conf
-sudo sed -i 's/# HostMetadata=/HostMetadata=SPOS/g' /etc/zabbix/zabbix_agent2.conf
+ 
+# Vyčisti staré nastavení, pokud existuje (pro jistotu)
+sudo sed -i '/^Hostname=/d' /etc/zabbix/zabbix_agent2.conf
+sudo sed -i '/^Server=/d' /etc/zabbix/zabbix_agent2.conf
+sudo sed -i '/^ServerActive=/d' /etc/zabbix/zabbix_agent2.conf
+sudo sed -i '/^HostMetadata=/d' /etc/zabbix/zabbix_agent2.conf
+sudo sed -i '/^Timeout=/d' /etc/zabbix/zabbix_agent2.conf
+ 
+# Přidej nové hodnoty (na konec souboru)
+cat <<EOF | sudo tee -a /etc/zabbix/zabbix_agent2.conf
+ 
+### Custom config for autoreg ###
+Hostname=$SHORT_HOSTNAME
+Server=192.168.1.10
+ServerActive=192.168.1.10
+HostMetadata=SPOS
+Timeout=30
+EOF
+ 
+# Porovnání starého a nového configu
 sudo diff -u /etc/zabbix/zabbix_agent2.conf-orig /etc/zabbix/zabbix_agent2.conf
-
-# Restart sluzby zabbix-agent2
+ 
+# Restart agent2
 sudo systemctl restart zabbix-agent2
-
-# EOF
+ 
+ 
